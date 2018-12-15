@@ -1,0 +1,84 @@
+%YAML 1.1
+---
+name: imagemagick-part
+summary: Remote part for ImageMagick
+description: |
+  This remote part provides an ImageMagick distribution and a launcher that makes it functional in the snap runtime.
+
+version: current
+
+confinement: strict
+grade: stable
+
+plugs:
+  # For snaps with a graphical user interface:
+  #desktop:
+  #desktop-legacy:
+  #x11:
+  #unity7:
+  #wayland:
+
+  # Storage access
+  home:
+  removable-media: # Non-A/C
+
+parts:
+  # Launcher programs to fix problems at runtime
+  launchers:
+    source: launchers
+    plugin: dump
+    organize:
+      '*-launch': bin/
+
+  # Remote part for fixing the glibc locales(and gnu gettext I18N support)
+  # This part is only required for non GUI apps that don't uses the desktop-launch launchers
+  locales-launch:
+
+  # Remote part for recording the exact revision for each part during building
+  parts-meta-info:
+
+  # Remote part for SNAP_ARCH_TRIPLET workaround
+  workaround-snap-arch-triplet:
+
+  imagemagick:
+    source: launchers
+    plugin: dump
+    stage-packages:
+    - imagemagick
+
+    organize:
+      '*-launch': bin/
+
+    override-prime: |
+      set \
+        -o errexit \
+        -o nounset
+
+      snapcraftctl prime
+
+      # Create canonical commands for ImageMagick
+      canonical_command=
+
+      for image_magick_command in usr/bin/*-im?; do
+        canonical_command="$(
+          printf -- \
+            "${image_magick_command}" \
+            | sed \
+              's/-im.*$//'
+        )"
+
+        # HACK: Make symbolic link point to symbolic link without using `ln`'s `--relative`, which always dereferences TARGET for some reason :-/
+        image_magick_command="$(
+          printf -- \
+            "${image_magick_command}" \
+            | sed \
+              's/^.*\///'
+        )"
+
+        ln \
+          --force \
+          --symbolic \
+          --verbose \
+          "${image_magick_command}" \
+          "${canonical_command}"
+      done

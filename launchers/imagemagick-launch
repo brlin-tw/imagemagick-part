@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Launcher for Ubuntu packaged ImageMagick to work properly in snap
+# DOC: https://www.imagemagick.org/script/resources.php#environment
+set \
+	-o errexit \
+	-o nounset
+
+if ! test -v SNAP_ARCH_TRIPLET; then
+    # Intentionally use tildes for commands
+    # shellcheck disable=SC2016
+	printf -- \
+		'image-launch: Error: This launcher depends on the `workaround-snap-arch-triplet-launch` launcher, please incorporate the `workaround-snap-arch-triplet` remote part.\n' \
+		1>&2
+	exit 1
+fi
+
+declare \
+	magick_configure_path_etc \
+	magick_configure_path_usr_share \
+	magick_coder_module_path \
+	magick_coder_filter_path
+
+magick_configure_path_etc="$(
+	echo -n \
+		"${SNAP}"/etc/ImageMagick-*
+)"
+
+magick_configure_path_usr_share="$(
+	echo -n \
+		"${SNAP}"/usr/share/ImageMagick-*
+)"
+
+magick_coder_module_path="$(
+	echo -n \
+		"${SNAP}"/usr/lib/"${SNAP_ARCH_TRIPLET}"/ImageMagick-*/modules-Q*/coders
+)"
+
+magick_coder_filter_path="$(
+	echo -n \
+		"${SNAP}"/usr/lib/"${SNAP_ARCH_TRIPLET}"/ImageMagick-*/modules-Q*/filters
+)"
+
+export \
+	MAGICK_CONFIGURE_PATH="${magick_configure_path_etc}":"${magick_configure_path_usr_share}" \
+	MAGICK_CODER_MODULE_PATH="${magick_coder_module_path}" \
+	MAGICK_CODER_FILTER_PATH="${magick_coder_filter_path}"
+
+exec "${@}"
